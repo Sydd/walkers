@@ -1,14 +1,38 @@
+
+class User {
+  constructor(id, stream) {
+    this.id = id;
+    this.stream = stream;
+  }
+}
+
+class UserDictionary {
+  constructor() {
+    this.users = [];
+  }
+}
+
 const WebSocket = require('ws');
-const ws = new WebSocket.Server({port: 8080})
+const { v4 } = require('uuid');
+const wss = new WebSocket.Server({ port: 8080 })
 
-ws.on('error', console.error);
 
-ws.on('open', function open() {
-  ws.send('something');
+wss.on('error', console.error);
+
+wss.on('open', function open() {
+  wss.send('something');
 });
 
-ws.on('connection', (stream) => {
-    stream.on('message', function message(data) {
-        console.log('received: %s', data);
-      });00
-  });
+let awaitingUsers = new UserDictionary();
+
+wss.on('connection', function connection(stream) {
+  console.log("connected");
+  stream.on('error', console.error);
+  stream.on('message', function message(data, isBinary) {
+    wss.clients.forEach((client) => {
+      if (client !== stream && client.readyState === WebSocket.OPEN) {
+        client.send(data, { binary: isBinary });
+      }
+    });
+  })
+});
